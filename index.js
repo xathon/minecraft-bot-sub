@@ -6,6 +6,10 @@ const port = process.env.PORT;
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+function validate (req) {
+    return process.env.WORLDS.split(',').includes(req.params.worldName) && process.env.SECRET === req.headers.authorization;
+}
+
 app.post('/', (req, res) => {
     const command = req.body;
     const pass = req.headers.authorization;
@@ -19,9 +23,8 @@ app.post('/', (req, res) => {
 
 app.get('/status/:worldName', (req, res) => {
     const worldName = req.params.worldName;
-    const pass = req.headers.authorization;
-    if (pass === process.env.SECRET) {
-        if(!worldName) res.status(400).send("Missing worldName");
+    if(!worldName) res.status(400).send("Missing worldName");
+    if(validate(req)) {
         require('child_process').exec(`${process.env.MSCS_BIN} status ${worldName}`, (err,stdout,stderr) => {
             if (err) {
                 console.log(err);
@@ -38,9 +41,10 @@ app.get('/logasfile/:worldName/:file', (req, res) => {
     const worldName = req.params.worldName;
     const file = req.params.file;
     const pass = req.headers.authorization;
+    if(!worldName) res.status(400).send("Missing worldName");
+    if(!file) res.status(400).send("Missing file");   
     
-    
-    if (pass === process.env.PASS) {
+    if (validate(req)) {
         if(file === "console.out") {
             require('fs').copyFile(`${process.env.MSCS_WORLDS}/${worldName}/console.out`, '/tmp/console.out.log', (err) => { 
                 if (err) {
@@ -63,8 +67,9 @@ app.get('/logasfile/:worldName/:file', (req, res) => {
 app.post('/start/:worldName', (req, res) => {
     const worldName = req.params.worldName;
     const pass = req.headers.authorization;
-    if (pass === process.env.SECRET) {
-        if(!worldName) res.status(400).send("Missing worldName");
+    if(!worldName) res.status(400).send("Missing worldName");
+    if (validate(req)) {
+        
 
         require('child_process').exec(`${process.env.MSCS_BIN} status ${worldName}`, (err,stdout,stderr) => {
             if(stdout.includes("starting up") ) {
@@ -87,8 +92,10 @@ app.post('/start/:worldName', (req, res) => {
 app.post('/stop/:worldName', (req, res) => {
     const worldName = req.params.worldName;
     const pass = req.headers.authorization;
-    if (pass === process.env.SECRET) {
-        if(!worldName) res.status(400).send("Missing worldName");
+    if(!worldName) res.status(400).send("Missing worldName");
+
+    if (validate(req)) {
+        
         require('child_process').exec(`${process.env.MSCS_BIN} stop ${worldName}`, (err,stdout,stderr) => {
             if (err) {
                 console.log(err);
@@ -104,8 +111,8 @@ app.post('/stop/:worldName', (req, res) => {
 app.post('/restart/:worldName', (req, res) => {
     const worldName = req.params.worldName;
     const pass = req.headers.authorization;
-    if (pass === process.env.SECRET) {
-        if(!worldName) res.status(400).send("Missing worldName");
+    if(!worldName) res.status(400).send("Missing worldName");
+    if (validate(req)) {
         require('child_process').exec(`${process.env.MSCS_BIN} restart ${worldName}`, (err,stdout,stderr) => {
             if (err) {
                 console.log(err);
